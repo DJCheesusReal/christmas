@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Christmas List</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* --- SUBTLE & SNOWY CHRISTMAS THEME --- */
+      :root {
+        --color-background: #1a1a1a;
+        --color-surface: #282828;
+        --color-text-on-image: #ffffff;
+        --color-text-primary: #f0f0f0;
+        --color-text-secondary: #b0b0b0;
+        --color-button-bg: #b82a3a; /* A rich, classic Christmas Red */
+        --color-button-hover: #a32533; /* Darker red for hover */
+
+        --border-radius: 20px;
+        --grid-gap: 18px;
+        --font-main: "Inter", sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background-color: var(--color-background);
+        margin: 0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      /* --- SNOW ANIMATION STYLES --- */
+      #snow-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* Allows clicks to go through */
+        z-index: -1; /* Place it behind everything */
+      }
+
+      .snowflake {
+        position: absolute;
+        background-color: white;
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+
+      .info-panel {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 300px;
+        color: var(--color-text-primary);
+        opacity: 0;
+        animation: fadeIn 1s ease 1s forwards;
+        display: none;
+      }
+
+      .info-panel.left {
+        left: 50px;
+      }
+      .info-panel.right {
+        right: 50px;
+        text-align: right;
+      }
+
+      .info-panel h1 {
+        font-size: 3rem;
+        margin: 0 0 10px 0;
+      }
+      .info-panel p {
+        font-size: 1.1rem;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      @media (min-width: 1600px) {
+        .info-panel {
+          display: block;
+        }
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+
+      body.modal-open .grid-container,
+      body.modal-open .info-panel {
+        filter: blur(8px);
+        transition: filter 0.4s ease;
+      }
+
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        gap: var(--grid-gap);
+        width: 90vmin;
+        max-width: 800px;
+        aspect-ratio: 1 / 1;
+        position: relative;
+        transition: filter 0.4s ease;
+      }
+
+      .grid-item {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        will-change: transform, opacity;
+        visibility: hidden;
+      }
+
+      .item-bg-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+      }
+      .item-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 15px;
+        z-index: 2;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+      }
+      .item-title {
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0;
+        color: var(--color-text-on-image);
+      }
+      .item-price {
+        font-size: 0.9rem;
+        color: var(--color-text-on-image);
+        margin-top: 4px;
+      }
+
+      [data-position="pos-1"] {
+        grid-column: 1 / 3;
+        grid-row: 1;
+      }
+      [data-position="pos-2"] {
+        grid-column: 3 / 5;
+        grid-row: 1;
+      }
+      [data-position="pos-3"] {
+        grid-column: 1;
+        grid-row: 2 / 4;
+      }
+      [data-position="pos-4"] {
+        grid-column: 4;
+        grid-row: 2 / 4;
+      }
+      [data-position="pos-5"] {
+        grid-column: 1 / 3;
+        grid-row: 4;
+      }
+      [data-position="pos-6"] {
+        grid-column: 3;
+        grid-row: 4;
+      }
+      [data-position="pos-7"] {
+        grid-column: 4;
+        grid-row: 4;
+      }
+      [data-position="pos-mid"] {
+        grid-column: 2 / 4;
+        grid-row: 2 / 4;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6);
+        z-index: 99;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        visibility: hidden;
+        opacity: 0;
+        width: 90vw;
+        max-width: 800px;
+        z-index: 100;
+        display: flex;
+        background: var(--color-surface);
+        border-radius: var(--border-radius);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+
+      body.modal-open .modal-backdrop {
+        opacity: 1;
+        transition: opacity 0.4s ease;
+      }
+
+      .modal-image-wrapper {
+        width: 55%;
+        flex-shrink: 0;
+      }
+      .modal-image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 50%;
+      }
+      .modal-content-wrapper {
+        width: 45%;
+        padding: 40px;
+        color: var(--color-text-primary);
+        box-sizing: border-box;
+      }
+
+      .modal-title,
+      .modal-price,
+      .modal-desc,
+      .modal-link {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      .modal-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .modal-price {
+        font-size: 1.5rem;
+        color: var(--color-text-secondary);
+        margin: 0 0 20px;
+      }
+      .modal-desc {
+        line-height: 1.6;
+        margin: 0 0 30px;
+      }
+      .modal-link {
+        display: inline-block;
+        background-color: var(--color-button-bg);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+      }
+      .modal-link:hover {
+        background-color: var(--color-button-hover);
+      }
+      .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 2.5rem;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        border: none;
+        background: none;
+        z-index: 101;
+      }
+      .modal-close:hover {
+        color: var(--color-text-primary);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          display: block;
+          overflow-y: auto;
+          padding: 10px;
+        }
+        .grid-container {
+          grid-template-columns: 1fr;
+          grid-auto-rows: 250px;
+          aspect-ratio: unset;
+          width: 100%;
+          max-width: 500px;
+          margin-top: 20px;
+        }
+        .grid-item {
+          grid-column: 1 / -1 !important;
+          grid-row: auto !important;
+        }
+        .modal {
+          flex-direction: column;
+          width: 95vw;
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+        .modal-image-wrapper {
+          width: 100%;
+          height: 250px;
+        }
+        .modal-content-wrapper {
+          width: 100%;
+          padding: 25px;
+        }
+        .modal-title {
+          font-size: 1.8rem;
+        }
+        .modal-price {
+          font-size: 1.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="snow-container"></div>
+
+    <div class="info-panel left">
+      <h1>my christmas list</h1>
+      <p>a list of all my things, in a dynamically configurable grid</p>
+    </div>
+
+    <div class="grid-container"></div>
+
+    <div class="info-panel right">
+      <p>hover and click on any item to see more details</p>
+    </div>
+
+    <div class="modal-backdrop"></div>
+    <div class="modal" id="product-modal">
+      <button class="modal-close">&times;</button>
+      <div class="modal-image-wrapper">
+        <img src="" alt="Product Image" id="modal-img" />
+      </div>
+      <div class="modal-content-wrapper">
+        <h2 class="modal-title"></h2>
+        <p class="modal-price"></p>
+        <p class="modal-desc"></p>
+        <a href="#" class="modal-link" target="_blank" rel="noopener noreferrer"
+          >View Product</a
+        >
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // ... (productData remains the same)
+        const productData = [
+          {
+            id: 1,
+            position: "pos-mid",
+            title: "stream deck neo",
+            price: "£99.98",
+            img: "https://m.media-amazon.com/images/I/61aBZ5V34yL._AC_SL1500_.jpg",
+            desc: "A compact 8 key controller designed to automate tasks and streamline your workflow.",
+            link: "https://www.amazon.co.uk/Elgato-Stream-Deck-Neo-Black/dp/B0FBS6X4NX",
+            offset: ["50%", "40%"],
+          },
+          {
+            id: 2,
+            position: "pos-1",
+            title: "esp32 lcd",
+            price: "£16.99",
+            img: "https://m.media-amazon.com/images/I/71lOS7460nL._AC_SL1500_.jpg",
+            desc: "A development board with an integrated display for your projects.",
+            link: "https://www.amazon.co.uk/dp/B0DK399Y9Q",
+            offset: ["50%", "30%"],
+          },
+          {
+            id: 3,
+            position: "pos-2",
+            title: "32gb of ram",
+            price: "£113.99",
+            img: "https://m.media-amazon.com/images/I/61wCOVcyvFL._AC_SL1500_.jpg",
+            desc: "A high performance 32GB DDR4 memory kit for enhanced multitasking.",
+            link: "https://www.amazon.co.uk/Corsair-VENGEANCE-2x16GB-3200MHz-Computer/dp/B07RW6Z692",
+          },
+          {
+            id: 4,
+            position: "pos-3",
+            title: "air duster",
+            price: "£19.99",
+            img: "https://m.media-amazon.com/images/I/61qPK3zXoJL._AC_SL1500_.jpg",
+            desc: "A powerful cordless blower for versatile and eco-friendly cleaning.",
+            link: "https://www.amazon.co.uk/Compressed-Adjustable-110000RPM-Electric-Portable/dp/B0DY1F8PLL",
+            offset: ["50%", "50%"],
+          },
+          {
+            id: 5,
+            position: "pos-4",
+            title: "smart blind motor",
+            price: "£30.33",
+            img: "https://ae-pic-a1.aliexpress-media.com/kf/Sbd8f697e644c49a0ae14bb6494121886U.jpg_960x960q75.jpg_.webp",
+            desc: "A smart motor driver to automate your window blinds with ease.",
+            link: "https://www.aliexpress.com/item/1005008882422844.html",
+            offset: ["20%", "20%"],
+          },
+          {
+            id: 6,
+            position: "pos-5",
+            title: "life series hoodie",
+            price: "£38.35",
+            img: "https://imgproxy.fourthwall.com/hGV2Kh4Kq8lW7GJX8gMpHbF-UPG2T2VIEISF_viX9x4/w:1920/sm:1/enc/Ox5xLG0JEtdmgKX4/SRMgxi-pmu0gE4HM/Y4-2WS3RvE_Gl3GB/hErysxwuMKCCZU6s/NUz8OfqU_iaeGrob/N3TKbapIs4qHRwZ5/xdJ78KssgHzaobmR/QyQ1qkjNCz2F1xpb/2t5D4J0VbC9NC0Mp/jZ8oY0GLDSxrD1_T/g6Ab-WHb1TkVHawp/MHGPjXOQ-bJ54qRC/IpWSUgRwCvXHLFfu/UMphwRQ7443y3XxR/mnQejbZj03Q",
+            desc: "Official hoodie from the 2024 Life Series.",
+            link: "https://grian.store/en-gbp/products/2024-life-hoodie",
+          },
+          {
+            id: 7,
+            position: "pos-6",
+            title: "esp32 cam",
+            price: "£18.99",
+            img: "https://m.media-amazon.com/images/I/61C6qyGAe0L._AC_SL1500_.jpg",
+            desc: "A compact camera module for development and IoT projects.",
+            link: "https://www.amazon.co.uk/diymore-pieces-Development-Bluetooth-dual-core/dp/B0DBYQ2PMG",
+          },
+          {
+            id: 8,
+            position: "pos-7",
+            title: "peace, love & plants",
+            price: "£23.45",
+            img: "https://imgproxy.fourthwall.com/EAqBlk1GZhVYX7lBtxlWa4wCqo4xwAKd6a3MswxrUTw/w:1920/sm:1/enc/hvSqVea96zTI8Dj4/gvpq7mtYOHEAbdDK/wBR2MmprClBJFiRC/64hh8GMt74_meF-c/WZOuV-Zce2Ji_sta/WQif0eRFcNGtz7oS/4Lx_zmxQQbgG2fTV/rB9YLRxMzjU4nNgW/_32cT0viMPnBBrIK/QyQErz7TQiZOUaCs/gHo2VxwXjAcFwftv/H0a588sd3ZVCMOIh/walyzb54XkxUNT5Y/f92DAIAQ-cGlBTwT/UAe7vJFdTm4",
+            desc: "Official Mumbo Jumbo apparel with a 'Peace, Love and Plants' theme.",
+            link: "https://mumbo.store/en-gbp/products/season-8-peace-love-and-heavy-metal",
+          },
+        ];
+
+        const grid = document.querySelector(".grid-container");
+        const modal = document.querySelector(".modal");
+        const modalBackdrop = document.querySelector(".modal-backdrop");
+        let isAnimating = false;
+
+        // --- NEW SNOW FUNCTION ---
+        function createSnow() {
+          const container = document.getElementById("snow-container");
+          const snowflakeCount = 100;
+          for (let i = 0; i < snowflakeCount; i++) {
+            const snowflake = document.createElement("div");
+            snowflake.className = "snowflake";
+            container.appendChild(snowflake);
+
+            const size = Math.random() * 4 + 1; // size between 1px and 5px
+            gsap.set(snowflake, {
+              width: size,
+              height: size,
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight - window.innerHeight,
+              opacity: Math.random() * 0.7 + 0.3,
+            });
+
+            gsap.to(snowflake, {
+              y: window.innerHeight + 20,
+              x: "+=random(-50, 50)",
+              duration: Math.random() * 10 + 5, // duration between 5 and 15 seconds
+              repeat: -1,
+              delay: -Math.random() * 15,
+              ease: "none",
+            });
+          }
+        }
+
+        // ... (The rest of the JS is identical and works perfectly)
+        function initialShuffle() {
+          const shuffledData = [...productData].sort(() => 0.5 - Math.random());
+          shuffledData.forEach((data) => {
+            const item = document.createElement("div");
+            item.className = "grid-item";
+            item.dataset.id = data.id;
+            const imageOffset = data.offset
+              ? `style="object-position: ${data.offset[0]} ${data.offset[1]}"`
+              : "";
+            item.innerHTML = `
+                <img class="item-bg-image" src="${data.img}" alt="${data.title}" ${imageOffset}>
+                <div class="item-content"><p class="item-title">${data.title}</p><p class="item-price">${data.price}</p></div>`;
+            grid.appendChild(item);
+          });
+
+          setTimeout(() => {
+            const items = grid.querySelectorAll(".grid-item");
+            items.forEach((item) => (item.style.visibility = "visible"));
+            const state = Flip.getState(items);
+            items.forEach((item) => {
+              const product = productData.find((p) => p.id == item.dataset.id);
+              item.dataset.position = product.position;
+            });
+            Flip.from(state, {
+              duration: 1.2,
+              ease: "power4.inOut",
+              stagger: 0.07,
+              onComplete: () => {
+                document.querySelectorAll(".grid-item").forEach((item) => {
+                  item.addEventListener("click", () => openModal(item));
+                });
+              },
+            });
+          }, 100);
+        }
+
+        function openModal(item) {
+          if (isAnimating) return;
+          isAnimating = true;
+          const data = productData.find((p) => p.id == item.dataset.id);
+          const modalImg = modal.querySelector("#modal-img");
+          modalImg.src = data.img;
+          if (data.offset) {
+            modalImg.style.objectPosition = `${data.offset[0]} ${data.offset[1]}`;
+          } else {
+            modalImg.style.objectPosition = "50% 50%";
+          }
+          modal.querySelector(".modal-title").textContent = data.title;
+          modal.querySelector(".modal-price").textContent = data.price;
+          modal.querySelector(".modal-desc").textContent = data.desc;
+          modal.querySelector(".modal-link").href = data.link;
+          document.body.classList.add("modal-open");
+          const tl = gsap.timeline({ onComplete: () => (isAnimating = false) });
+          tl.to(modal, {
+            opacity: 1,
+            scale: 1,
+            visibility: "visible",
+            duration: 0.4,
+            ease: "power3.out",
+          }).to(
+            [".modal-content-wrapper > *"],
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.4,
+              stagger: 0.05,
+              ease: "power2.out",
+            },
+            "-=0.2"
+          );
+        }
+
+        function closeModal() {
+          if (isAnimating) return;
+          isAnimating = true;
+          const tl = gsap.timeline({
+            onComplete: () => {
+              document.body.classList.remove("modal-open");
+              isAnimating = false;
+            },
+          });
+          tl.to([".modal-content-wrapper > *"], {
+            opacity: 0,
+            y: 10,
+            duration: 0.3,
+            stagger: -0.05,
+            ease: "power2.in",
+          })
+            .to(
+              modal,
+              {
+                opacity: 0,
+                scale: 0.95,
+                duration: 0.3,
+                ease: "power3.in",
+              },
+              "-=0.2"
+            )
+            .set(modal, { visibility: "hidden" });
+        }
+
+        // --- CALL THE NEW FUNCTIONS ---
+        createSnow();
+        initialShuffle();
+        modal
+          .querySelector(".modal-close")
+          .addEventListener("click", closeModal);
+        modalBackdrop.addEventListener("click", closeModal);
+      });
+    </script>
+  </body>
+</html>
